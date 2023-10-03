@@ -1,0 +1,13 @@
+{
+  "name": "parameter-schema-document",
+  "description": "",
+  "version": "0.0.0",
+  "dependencies": {
+    "json-schema-library": "^9.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.7.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.2.2"
+  }
+}

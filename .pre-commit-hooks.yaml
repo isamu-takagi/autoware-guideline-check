@@ -1,0 +1,6 @@
+- id: parameter-schema-document
+  name: parameter schema document
+  description: Generate parameter schema document.
+  entry: node dst/main.js
+  language: node
+  files: \.schema\.json$
