@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.0.0"
+name = "pre_commit_hooks"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+
+[project.scripts]
+check-package-depends = "pre_commit_hooks.check_package_depends:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
