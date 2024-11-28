@@ -40,3 +40,5 @@ def main(argv = None):
 
         for pkg in result_pkgs:
             print(pkg)
+
+    return 1 if pkg else 0
