@@ -16,7 +16,7 @@ def iter_depend_pkgs(filepath: pathlib.Path):
 
 
 def list_launch_pkgs(filepath: pathlib.Path):
-    pattern = re.compile(r"\$\(find-pkg-share (.+)\)")
+    pattern = re.compile(r"\$\(find-pkg-share (.+?)\)")
     pkgs = set()
     for path in filepath.parent.glob("**/*.launch.xml"):
         with path.open() as fp:
@@ -64,6 +64,7 @@ def main(argv = None):
         depend_pkgs = iter_depend_pkgs(filepath)
         launch_pkgs = set()
         launch_pkgs |= list_launch_pkgs(filepath)
+        launch_pkgs |= list_rviz_pkgs(filepath)
 
         launch_pkgs = {pkg for pkg in launch_pkgs if "$" not in pkg}
         result_pkgs = launch_pkgs - depend_pkgs
