@@ -2,10 +2,11 @@ import argparse
 import pathlib
 import re
 import xml.etree.ElementTree as etree
+
 import yaml
 
 
-def iter_depend_pkgs(filepath: pathlib.Path):
+def list_package_depends(filepath: pathlib.Path):
     tree = etree.parse(filepath)
     root = tree.getroot()
     pkgs = set()
@@ -15,7 +16,7 @@ def iter_depend_pkgs(filepath: pathlib.Path):
     return pkgs
 
 
-def list_launch_pkgs(filepath: pathlib.Path):
+def list_launch_depends(filepath: pathlib.Path):
     pattern = re.compile(r"\$\(find-pkg-share (.+?)\)")
     pkgs = set()
     for path in filepath.parent.glob("**/*.launch.xml"):
@@ -25,8 +26,9 @@ def list_launch_pkgs(filepath: pathlib.Path):
     return pkgs
 
 
-def list_rviz_pkgs(filepath: pathlib.Path):
+def list_rviz_depends(filepath: pathlib.Path):
     pkgs = set()
+
     def traverse(nodes):
         nonlocal pkgs
         nodes = nodes if nodes else []
@@ -52,26 +54,24 @@ def list_rviz_pkgs(filepath: pathlib.Path):
         print("    " + pkg)
     return pkgs
 
-def main(argv = None):
+
+def main(argv=None):
     parser = argparse.ArgumentParser()
-    parser.add_argument('filenames', nargs='*')
+    parser.add_argument("filenames", nargs="*")
     args = parser.parse_args(argv)
 
     result = 0
     for filename in args.filenames:
         filepath = pathlib.Path(filename)
 
-        depend_pkgs = iter_depend_pkgs(filepath)
-        launch_pkgs = set()
-        launch_pkgs |= list_launch_pkgs(filepath)
-        launch_pkgs |= list_rviz_pkgs(filepath)
+        depends = set()
+        depends |= list_launch_depends(filepath)
+        depends = {pkg for pkg in depends if "$" not in pkg}
+        depends = depends - list_package_depends(filepath)
 
-        launch_pkgs = {pkg for pkg in launch_pkgs if "$" not in pkg}
-        result_pkgs = launch_pkgs - depend_pkgs
-
-        if result_pkgs:
+        if depends:
             result = 1
             print(filepath)
-            for pkg in result_pkgs:
+            for pkg in depends:
                 print(f"  exec_depend: {pkg}")
     return result
