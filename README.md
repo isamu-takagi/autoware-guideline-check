@@ -1,15 +1,17 @@
-# autoware_pre_commit_hooks
+# autoware_guideline_check
 
-## Features
+## check-package-depends
 
-- [check-package-depends](./doc/check-package-depends.md)
+Checks for dependencies on packages not listed in package.xml.
+Dependent packages are detected as shown in the table below.
 
-## Usage (pre-commit)
+| Dependency Type | Description                                                |
+| --------------- | ---------------------------------------------------------- |
+| exec_depends    | Search for `$(find-pkg-share <name>)` in launch.xml files. |
 
-```yaml
-repos:
-  - repo: https://github.com/isamu-takagi/autoware-pre-commit-hooks
-    rev: 0.0.0
-    hooks:
-      - id: check-package-depends
-```
+## check-directory-structure
+
+Checks whether the package directory structure meets the following.
+
+- The 'include' directory contains only 'autoware' directory.
+- The 'include/autoware' directory contains only the package name directory.

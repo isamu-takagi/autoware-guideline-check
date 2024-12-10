@@ -1,6 +1,13 @@
--   id: check-package-depends
-    name: check package depends
-    description: check for missing dependencies in package.xml
-    language: python
-    entry: check-package-depends
-    files: package.xml
+- id: check-package-depends
+  name: check package depends
+  description: check for missing dependencies in package.xml
+  language: python
+  entry: check-package-depends
+  files: package.xml
+
+- id: check-directory-structure
+  name: check directory structure
+  description: check directory structure of the package
+  language: python
+  entry: check-directory-structure
+  files: package.xml
