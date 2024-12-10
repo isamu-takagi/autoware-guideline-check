@@ -9,7 +9,7 @@ class RosPackageXml:
 
     def get_name(self, include_prefix=True):
         name = self.root.find("name").text
-        return name if include_prefix else name.lstrip("autoware_")
+        return name if include_prefix else name.removeprefix("autoware_")
 
     def list_package_depends(self):
         pkgs = set()

@@ -3,11 +3,9 @@
 ## check-package-depends
 
 Checks for dependencies on packages not listed in package.xml.
-Dependent packages are detected as shown in the table below.
+Dependent packages are listed using the following method.
 
-| Dependency Type | Description                                                |
-| --------------- | ---------------------------------------------------------- |
-| exec_depends    | Search for `$(find-pkg-share <name>)` in launch.xml files. |
+- Search for `$(find-pkg-share <name>)` in launch.xml files (exec_depends).
 
 ## check-directory-structure
 
