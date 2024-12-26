@@ -1,19 +1,14 @@
 import argparse
 import pathlib
 import re
-import xml.etree.ElementTree as etree
 
 import yaml
 
+from .utils.ros_package_xml import RosPackageXml, RosPackageXmlDependEditor
+
 
 def list_package_depends(filepath: pathlib.Path):
-    tree = etree.parse(filepath)
-    root = tree.getroot()
-    pkgs = set()
-    for node in root:
-        if node.tag.endswith("depend") or node.tag == "name":
-            pkgs.add(node.text)
-    return pkgs
+    return RosPackageXml(filepath).list_package_depends()
 
 
 def list_launch_depends(filepath: pathlib.Path):
@@ -70,8 +65,9 @@ def main(argv=None):
         depends = depends - list_package_depends(filepath)
 
         if depends:
+            print("Fix", filepath)
             result = 1
-            print(filepath)
-            for pkg in depends:
-                print(f"  exec_depend: {pkg}")
+            xml = RosPackageXmlDependEditor(filepath)
+            xml.add_depend("exec_depend", depends)
+            xml.write()
     return result
