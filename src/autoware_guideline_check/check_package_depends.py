@@ -4,7 +4,7 @@ import re
 
 import yaml
 
-from .utils.ros_package_xml import RosPackageXml, RosPackageXmlDependEditor
+from .utils.ros_package_xml import RosPackageXml, RosPackageXmlEdit
 
 
 def list_package_depends(filepath: pathlib.Path):
@@ -67,7 +67,7 @@ def main(argv=None):
         if depends:
             print("Fix", filepath)
             result = 1
-            xml = RosPackageXmlDependEditor(filepath)
+            xml = RosPackageXmlEdit(filepath)
             xml.add_depend("exec_depend", depends)
             xml.write()
     return result

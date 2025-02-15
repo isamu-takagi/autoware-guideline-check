@@ -20,7 +20,14 @@ class RosPackageXml:
         return pkgs
 
 
-class RosPackageXmlDependEditor:
+class RosPackageXmlEdit:
+
+    class Line:
+        def __init__(self, text=None, type=None):
+            self.text = text
+            self.type = type  # depend type or text if empty
+            self.pkgs = set()
+
     def __init__(self, path: pathlib.Path):
         self._path = path
         self._depends = {}
@@ -31,28 +38,48 @@ class RosPackageXmlDependEditor:
         for line in lines:
             match = pattern.search(line)
             if not match:
-                self._content.append(line)
+                self._content.append(self.Line(text=line))
                 continue
             tag = match.group(1)
             pkg = match.group(2)
             if tag not in self._depends:
-                pkgs = set()
-                self._depends[tag] = pkgs
-                self._content.append((tag, pkgs))
-            self._depends[tag].add(pkg)
+                self._content.append(self.Line(type=tag))
+                self._depends[tag] = self._content[-1]
+            self._depends[tag].pkgs.add(pkg)
 
     def write(self):
         lines = []
         for line in self._content:
-            if type(line) is str:
-                lines.append(line)
+            if line.type is None:
+                lines.append(line.text)
             else:
-                tag, pkgs = line
-                for pkg in sorted(pkgs):
-                    lines.append(f"  <{tag}>{pkg}</{tag}>")
+                for pkg in sorted(line.pkgs):
+                    lines.append(f"  <{line.type}>{pkg}</{line.type}>")
         self._path.write_text("\n".join(lines))
 
     def add_depend(self, tag: str, pkgs: str | list[str]):
         pkgs = [pkgs] if pkgs is str else pkgs
         for pkg in pkgs:
-            self._depends[tag].add(pkg)
+            if tag not in self._depends:
+                self.__insert_new_depend(tag)
+            self._depends[tag].pkgs.add(pkg)
+
+    def __insert_new_depend(self, tag):
+        order = [
+            "buildtool_depend",
+            "buildtool_export_depend",
+            "depend",
+            "build_depend",
+            "build_export_depend",
+            "exec_depend",
+            "test_depend",
+        ]
+        index = order.index(tag)
+        while order[index] not in self._depends:
+            index -= 1
+        for i, line in enumerate(self._content):
+            if line.type == order[index]:
+                self._content.insert(i + 1, self.Line(type=tag))
+                self._content.insert(i + 1, self.Line(text=""))
+                self._depends[tag] = self._content[i + 2]
+                break
