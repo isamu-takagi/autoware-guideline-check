@@ -12,5 +12,5 @@ class EntryPoint:
         code = 0
         for file in args.files:
             path = pathlib.Path(file)
-            code = code & func(path, args)
+            code = code | func(path, args)
         return code
