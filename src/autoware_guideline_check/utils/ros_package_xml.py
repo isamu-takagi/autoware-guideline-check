@@ -75,11 +75,11 @@ class RosPackageXmlEdit:
             "test_depend",
         ]
         index = order.index(tag)
-        while order[index] not in self._depends:
-            index -= 1
+        max_i = 0
         for i, line in enumerate(self._content):
-            if line.type == order[index]:
-                self._content.insert(i + 1, self.Line(type=tag))
-                self._content.insert(i + 1, self.Line(text=""))
-                self._depends[tag] = self._content[i + 2]
-                break
+            for j in range(index):
+                if line.type == order[j]:
+                    max_i = max(max_i, i)
+        self._content.insert(max_i + 1, self.Line(type=tag))
+        self._content.insert(max_i + 1, self.Line(text=""))
+        self._depends[tag] = self._content[max_i + 2]

@@ -1,10 +1,9 @@
-import argparse
 import pathlib
 import re
 
 import yaml
 
-from .utils.ros_package_xml import RosPackageXml, RosPackageXmlEdit
+from .utils import EntryPoint, RosPackageXml, RosPackageXmlEdit
 
 
 def list_package_depends(filepath: pathlib.Path):
@@ -50,24 +49,19 @@ def list_rviz_depends(filepath: pathlib.Path):
     return pkgs
 
 
+def process_file(path: pathlib.Path, args):
+    depends = set()
+    depends |= list_launch_depends(path)
+    depends = {pkg for pkg in depends if "$" not in pkg}
+    depends = depends - list_package_depends(path)
+    if depends:
+        print("Fix", path)
+        xml = RosPackageXmlEdit(path)
+        xml.add_depend("exec_depend", depends)
+        xml.write()
+        return 1
+    return 0
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("filenames", nargs="*")
-    args = parser.parse_args(argv)
-
-    result = 0
-    for filename in args.filenames:
-        filepath = pathlib.Path(filename)
-
-        depends = set()
-        depends |= list_launch_depends(filepath)
-        depends = {pkg for pkg in depends if "$" not in pkg}
-        depends = depends - list_package_depends(filepath)
-
-        if depends:
-            print("Fix", filepath)
-            result = 1
-            xml = RosPackageXmlEdit(filepath)
-            xml.add_depend("exec_depend", depends)
-            xml.write()
-    return result
+    return EntryPoint().main(process_file, argv)
