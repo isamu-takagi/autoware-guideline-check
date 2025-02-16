@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+version = "0.1.0"
+name = "autoware_guideline_check"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {file = "LICENSE"}
+dependencies = [
+  "pyyaml",
+]
+
+[project.scripts]
+check-package-depends = "autoware_guideline_check.check_package_depends:main"
+check-directory-structure = "autoware_guideline_check.check_directory_structure:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
