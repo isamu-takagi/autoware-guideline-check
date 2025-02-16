@@ -13,7 +13,6 @@ dependencies = [
 
 [project.scripts]
 check-package-depends = "autoware_guideline_check.check_package_depends:main"
-check-plugin-name = "autoware_guideline_check.check_plugin_name:main"
 check-directory-structure = "autoware_guideline_check.check_directory_structure:main"
 
 [tool.setuptools]
