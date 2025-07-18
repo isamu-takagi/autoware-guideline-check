@@ -1,0 +1,6 @@
+<launch>
+  <arg name="arg1" default="arg-value-1"/>
+  <arg name="arg2" default="arg-value-2"/>
+  <log message="Message: $(var arg1)"/>
+  <log message="Message: $(var arg2)"/>
+</launch>

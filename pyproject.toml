@@ -20,6 +20,7 @@ maintainers = [
 
 [project.scripts]
 check-package-depends = "autoware_guideline_check.check_package_depends:main"
+check-launch-file = "autoware_guideline_check.check_launch_file:main"
 check-directory-structure = "autoware_guideline_check.check_directory_structure:main"
 
 [tool.setuptools]
