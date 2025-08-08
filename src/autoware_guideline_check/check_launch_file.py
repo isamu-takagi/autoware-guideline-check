@@ -3,15 +3,40 @@ import pathlib
 from typing import Any, Dict, Text
 
 from launch import Event, Substitution
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetLaunchConfiguration
 from launch.launch_context import LaunchContext
 from launch.substitutions import LaunchConfiguration, TextSubstitution
+
+
+class DummyDict(collections.abc.MutableMapping):
+    def __init__(self):
+        self.data = {}
+        self.used = collections.defaultdict(int)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def __getitem__(self, item):
+        self.used[item] += 1
+        return self.data[item]
+
+    def __setitem__(self, item, value):
+        self.data[item] = value
+
+    def __delitem__(self, item):
+        del self.data[item]
 
 
 class DummyContext:
     def __init__(self):
         self.__context = LaunchContext()
-        self.launch_configurations = {}
+        self.launch_configurations = DummyDict()
 
     @property
     def is_shutdown(self):
@@ -26,16 +51,12 @@ class DummyContext:
         return self.__context.locals
 
     def perform_substitution(self, substitution: Substitution) -> Text:
-        if not isinstance(substitution, TextSubstitution):
-            print(" - perform_substitution", substitution.describe())
         return substitution.perform(self)
 
     def would_handle_event(self, event: Event) -> bool:
-        # print(" - would_handle_event", event)
         return False
 
     def extend_locals(self, extensions: Dict[Text, Any]) -> None:
-        # print(" - extend_locals", extensions)
         self.__context.extend_locals(extensions)
 
     def _push_environment(self):
@@ -64,15 +85,24 @@ class DummyService:
         context = DummyContext()
         while self.entities:
             entity = self.entities.popleft()
-            print(entity)
             if isinstance(entity, IncludeLaunchDescription):
-                print(" - Skip include launch description")
+                for name, value in entity.launch_arguments:
+                    for substitution in name:
+                        substitution.perform(context)
+                    for substitution in value:
+                        substitution.perform(context)
                 continue
             if isinstance(entity, DeclareLaunchArgument):
                 if entity.default_value is None:
-                    context.launch_configurations[entity.name] = entity.default_value
+                    context.launch_configurations[entity.name] = "NONE"
             result = entity.visit(context)
             self.entities.extend(result if result else [])
+
+        data = context.launch_configurations.data
+        used = context.launch_configurations.used
+        for name in data:
+            if used[name] == 0:
+                print(name)
 
 
 def process_file(path: pathlib.Path, args):
