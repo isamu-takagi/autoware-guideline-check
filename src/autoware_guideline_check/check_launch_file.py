@@ -2,11 +2,19 @@ import collections
 import pathlib
 from typing import Any, Dict, Text
 
+from ament_index_python.packages import PackageNotFoundError
 from launch import Event, Substitution
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, SetLaunchConfiguration
 from launch.launch_context import LaunchContext
 from launch.substitutions import LaunchConfiguration, TextSubstitution
+from launch.substitutions.substitution_failure import SubstitutionFailure
+from launch_ros.substitutions import FindPackageShare
 
+from launch import LaunchService
+from launch.event_handlers.on_shutdown import OnShutdown
+from launch.events import Shutdown
+
+from launch.utilities import perform_substitutions
 
 class DummyDict(collections.abc.MutableMapping):
     def __init__(self):
@@ -32,11 +40,16 @@ class DummyDict(collections.abc.MutableMapping):
     def __delitem__(self, item):
         del self.data[item]
 
+class DummyEventLoop:
+    def run_in_executor(self, executor, func, *args):
+        pass
 
 class DummyContext:
     def __init__(self):
         self.__context = LaunchContext()
         self.launch_configurations = DummyDict()
+        self.asyncio_loop = DummyEventLoop()
+        self._event_handlers = []
 
     @property
     def is_shutdown(self):
@@ -51,13 +64,30 @@ class DummyContext:
         return self.__context.locals
 
     def perform_substitution(self, substitution: Substitution) -> Text:
-        return substitution.perform(self)
+        print("sub:", substitution.describe())
+        if isinstance(substitution, FindPackageShare):
+            result = perform_substitutions(self, substitution.package)
+            result = "$(find-pkg-share " + result + ")"
+            print("res:", result)
+            return result
+        result = substitution.perform(self)
+        print("res:", result)
+        return result
 
     def would_handle_event(self, event: Event) -> bool:
         return False
 
+    def register_event_handler(self, handler, append=False) -> None:
+        self._event_handlers.append(handler)
+
+    def add_completion_future(self, future) -> None:
+        pass
+
     def extend_locals(self, extensions: Dict[Text, Any]) -> None:
         self.__context.extend_locals(extensions)
+
+    def extend_globals(self, extensions: Dict[Text, Any]) -> None:
+        self.__context.extend_globals(extensions)
 
     def _push_environment(self):
         pass
@@ -82,30 +112,41 @@ class DummyService:
             self.entities.extend(entity.describe_sub_entities())
 
     def run(self):
-        context = DummyContext()
-        while self.entities:
-            entity = self.entities.popleft()
-            if isinstance(entity, IncludeLaunchDescription):
-                for name, value in entity.launch_arguments:
-                    for substitution in name:
-                        substitution.perform(context)
-                    for substitution in value:
-                        substitution.perform(context)
-                continue
-            if isinstance(entity, DeclareLaunchArgument):
-                if entity.default_value is None:
-                    context.launch_configurations[entity.name] = "NONE"
-            result = entity.visit(context)
-            self.entities.extend(result if result else [])
+        try:
+            context = DummyContext()
+            while self.entities:
+                entity = self.entities.popleft()
+                if isinstance(entity, IncludeLaunchDescription):
+                    for name, value in entity.launch_arguments:
+                        for substitution in name:
+                            substitution.perform(context)
+                        for substitution in value:
+                            substitution.perform(context)
+                    continue
+                if isinstance(entity, DeclareLaunchArgument):
+                    if entity.default_value is None:
+                        context.launch_configurations[entity.name] = "ARGS_NONE"
+                result = entity.visit(context)
+                self.entities.extend(result if result else [])
+            data = context.launch_configurations.data
+            used = context.launch_configurations.used
+            for name in data:
+                if used[name] == 0:
+                    # print("unused:", name)
+                    pass
+        except PackageNotFoundError as error:
+            print(error)
+        except SubstitutionFailure as error:
+            print(error)
 
-        data = context.launch_configurations.data
-        used = context.launch_configurations.used
-        for name in data:
-            if used[name] == 0:
-                print(name)
+        for handler in context._event_handlers:
+            handler.handle(Shutdown(), context)
+
 
 
 def process_file(path: pathlib.Path, args):
+    print("======================")
+    print(path)
     service = DummyService()
     service.include_launch_file(path)
     service.run()
