@@ -26,6 +26,8 @@ class FilePath:
 
     @staticmethod
     def Parse(data: dict, workspace: Workspace):
+        if type(data) is not dict:
+            raise TypeError(f"Expected type 'FilePath(dict)' but '{type(data).__name__}'")
         file = data.get("file")
         if file is None:
             raise KeyError("file")

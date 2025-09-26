@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 import xml.sax.saxutils as sax
 
 from . import param
+from .utils.autotests import generate_autotests
 from .utils.testsuite import TestStatus, TestSuite
 from .utils.workspace import Workspace
 
@@ -38,6 +39,9 @@ def main():
     testsuite = args.testsuites or sum((package.files for package in workspace.packages), [])
 
     suite = sum((TestSuite.Load(file) for file in testsuite), TestSuite())
+    for package in workspace.packages:
+        suite += generate_autotests(package)
+
     return test(suite, args, workspace)
 
 

@@ -31,10 +31,14 @@ def validate(schema_path, params_path):
     with params_path.path.open() as fp:
         target = yaml.safe_load(fp)
     try:
-        jsonschema.validate(target, schema)
+        absolute = schema_path.path.absolute()
+        resolver = jsonschema.RefResolver(f"file://{absolute}", schema)
+        jsonschema.validate(target, schema, resolver=resolver)
         return TestResult.Success("OK", details)
     except jsonschema.ValidationError as error:
         return TestResult.Failure(error.message, details)
+    except Exception as error:
+        return TestResult.Error(repr(error), details)
 
 
 def check(data: dict, workspace):
