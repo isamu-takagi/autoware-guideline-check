@@ -39,7 +39,7 @@ jobs:
         shell: bash
 
       - name: Run autoware-guideline-check
-        uses: autowarefoundation/autoware-guideline-check@0.1.0
+        uses: autowarefoundation/autoware-guideline-check@0.2.0
 ```
 
 ## pre-commit
@@ -47,7 +47,7 @@ jobs:
 ```yaml
 repos:
   - repo: https://github.com/autowarefoundation/autoware-guideline-check
-    rev: 0.1.0
+    rev: 0.2.0
     hooks:
       - id: check-package-depends
       - id: check-directory-structure
