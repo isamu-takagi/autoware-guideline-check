@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .testsuite import TestCase, TestSuite
-from .workspace import Package
+from ..utils.testsuite import TestCase, TestSuite
+from ..utils.workspace import Package
 
 
-def generate_autotests(package: Package):
+def generate_json_schema_check(package: Package):
     schema_dir = package.path.joinpath("schema")
     config_dir = package.path.joinpath("config")
     cases = []
