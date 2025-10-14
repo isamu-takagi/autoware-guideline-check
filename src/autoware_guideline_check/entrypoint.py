@@ -31,6 +31,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--workspaces", nargs="+", default=["."])
     parser.add_argument("--testsuites", nargs="+")
+    parser.add_argument("--quiet", action="store_true")
     parser.add_argument("--json-schema-check", action="store_true")
     parser.add_argument("--xunit-file")
     parser.add_argument("--xunit-name")
@@ -57,6 +58,8 @@ def test(suite, args, workspace):
     duration = time.time() - start
 
     for index, case in enumerate(suite.cases):
+        if args.quiet and case.result.status == TestStatus.Success:
+            continue
         print(f"Test #{index} ({case.result.status.name})")
         print("  message:", case.result.message)
         print("  details:")
