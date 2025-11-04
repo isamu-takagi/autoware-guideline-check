@@ -69,4 +69,5 @@ class TestSuite:
         path = Path(path) if type(path) is str else path
         with path.open() as fp:
             suite = yaml.safe_load(fp)
+            suite = suite if suite is not None else {}
         return TestSuite([TestCase(data) for data in suite.get("param-checks", [])])

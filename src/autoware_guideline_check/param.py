@@ -21,6 +21,13 @@ from .types.filepath import FilePath
 from .utils.testsuite import TestResult
 
 
+class ParameterSchemaValidation:
+    @staticmethod
+    @property
+    def name():
+        return "parameter-schema-validation"
+
+
 def validate(schema_path, params_path):
     details = (
         ("schema", str(schema_path)),

@@ -22,29 +22,42 @@ import xml.etree.ElementTree as ET
 import xml.sax.saxutils as sax
 
 from . import param
-from .tests.json_schema_check import generate_json_schema_check
+from .modules import Modules
+from .utils.context import Context
 from .utils.testsuite import TestStatus, TestSuite
 from .utils.workspace import Workspace
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--config")
     parser.add_argument("--workspaces", nargs="+", default=["."])
     parser.add_argument("--testsuites", nargs="+")
     parser.add_argument("--quiet", action="store_true")
-    parser.add_argument("--json-schema-check", action="store_true")
     parser.add_argument("--xunit-file")
     parser.add_argument("--xunit-name")
     args = parser.parse_args()
 
-    workspace = Workspace(args.workspaces)
+    modules = Modules()
+    modules.append(param.ParameterSchemaValidation())
+
+    workspace = Workspace(modules, args.workspaces)
+
+    for package in workspace.packages:
+        print(package.name)
+        print("  path:", package.path)
+        print("  config:", len(package.configs))
+        for config in package.configs:
+            print("    -", config.path)
+        print()
+
     testsuite = args.testsuites or sum((package.files for package in workspace.packages), [])
 
     suite = sum((TestSuite.Load(file) for file in testsuite), TestSuite())
 
-    if args.json_schema_check:
-        for package in workspace.packages:
-            suite += generate_json_schema_check(package)
+    # if args.json_schema_check:
+    #    for package in workspace.packages:
+    #        suite += generate_json_schema_check(package)
 
     return test(suite, args, workspace)
 

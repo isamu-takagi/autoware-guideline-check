@@ -17,6 +17,19 @@ from pathlib import Path
 from ..utils.workspace import Workspace
 
 
+class PathType:
+    def parse(self, data):
+        return Path(data)
+
+
+class ListType:
+    def __init__(self, item):
+        self._item = item
+
+    def parse(self, data):
+        return [self._item.parse(elem) for elem in data]
+
+
 class FilePath:
     def __init__(self, path):
         self.path = path

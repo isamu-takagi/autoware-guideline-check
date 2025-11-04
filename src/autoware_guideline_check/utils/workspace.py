@@ -16,16 +16,21 @@
 from pathlib import Path
 from xml.etree import ElementTree
 
+from ..common.spec import SpecFile
+
 
 class Package:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, configs: list):
         root = ElementTree.parse(path / "package.xml")
         self._path = path
         self._name = root.find("name").text
+        self._configs = configs
+
         self._files = []
         for export in root.findall("export"):
             for file in export.findall("autoware_guideline_check"):
                 self._files.append(file.get("file"))
+                self._configs.append(SpecFile(path / file.get("file")))
 
     @property
     def path(self):
@@ -36,13 +41,21 @@ class Package:
         return self._name
 
     @property
+    def configs(self):
+        return self._configs
+
+    @property
     def files(self):
         return [self._path / file for file in self._files]
 
 
 class Workspace:
-    def __init__(self, paths: list[str]):
-        self._packages = self.__init_packages(paths)
+    colcon_ignore = "COLCON_IGNORE"
+    common_config = ".autoware-guideline-check.yaml"
+    package_xml = "package.xml"
+
+    def __init__(self, modules, paths: list[str]):
+        self._packages = self.__init_packages(modules, paths)
 
     def get_package_share_directory(self, name: str):
         package = self._packages.get(name)
@@ -55,21 +68,23 @@ class Workspace:
         return self._packages.values()
 
     @classmethod
-    def __init_packages(cls, bases: list[str]):
-        paths = sum(map(cls.__list_packages_paths, bases), [])
-        pkgs = [Package(path) for path in paths]
-        pkgs = {pkg.name: pkg for pkg in pkgs}
-        return pkgs
+    def __init_packages(cls, modules, paths: list[str]):
+        packages = []
+        for path in paths:
+            packages.extend(cls.__list_packages(modules, Path(path), []))
+        return {package.name: package for package in packages}
 
     @classmethod
-    def __list_packages_paths(cls, base: str):
-        base = Path(base)
-        if base.joinpath("COLCON_IGNORE").exists():
+    def __list_packages(cls, modules, base: Path, configs: list):
+        if base.joinpath(cls.colcon_ignore).exists():
             return []
-        if base.joinpath("package.xml").exists():
-            return [base]
-        paths = []
+        if base.joinpath(cls.common_config).exists():
+            configs = configs.copy()
+            configs.append(modules.parse_config(base.joinpath(cls.common_config)))
+        if base.joinpath(cls.package_xml).exists():
+            return [Package(base, configs.copy())]
+        packages = []
         for path in base.iterdir():
             if path.is_dir():
-                paths.extend(cls.__list_packages_paths(path))
-        return paths
+                packages.extend(cls.__list_packages(modules, path, configs))
+        return packages
