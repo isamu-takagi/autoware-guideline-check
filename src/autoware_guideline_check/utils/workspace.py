@@ -16,7 +16,22 @@
 from pathlib import Path
 from xml.etree import ElementTree
 
-from ..common.spec import SpecFile
+import yaml
+
+
+class Config:
+    def __init__(self, path: Path):
+        data = yaml.safe_load(path.read_text())
+        self._path = path
+        self._data = data if data else {}
+
+    @property
+    def path(self):
+        return self._path
+
+    @property
+    def data(self):
+        return self._data
 
 
 class Package:
@@ -24,13 +39,16 @@ class Package:
         root = ElementTree.parse(path / "package.xml")
         self._path = path
         self._name = root.find("name").text
-        self._configs = configs
+        self._share_configs = configs
+        self._local_configs = self.__list_package_configs(path, root)
 
-        self._files = []
+    @staticmethod
+    def __list_package_configs(path, root):
+        configs = []
         for export in root.findall("export"):
-            for file in export.findall("autoware_guideline_check"):
-                self._files.append(file.get("file"))
-                self._configs.append(SpecFile(path / file.get("file")))
+            for tag in export.findall("autoware_guideline_check"):
+                configs.append(Config(path / tag.get("file")))
+        return configs
 
     @property
     def path(self):
@@ -41,12 +59,12 @@ class Package:
         return self._name
 
     @property
-    def configs(self):
-        return self._configs
+    def share_configs(self):
+        return self._share_configs
 
     @property
-    def files(self):
-        return [self._path / file for file in self._files]
+    def local_configs(self):
+        return self._local_configs
 
 
 class Workspace:
@@ -54,8 +72,8 @@ class Workspace:
     common_config = ".autoware-guideline-check.yaml"
     package_xml = "package.xml"
 
-    def __init__(self, modules, paths: list[str]):
-        self._packages = self.__init_packages(modules, paths)
+    def __init__(self, paths: list[str]):
+        self._packages = self.__init_packages(paths)
 
     def get_package_share_directory(self, name: str):
         package = self._packages.get(name)
@@ -68,23 +86,22 @@ class Workspace:
         return self._packages.values()
 
     @classmethod
-    def __init_packages(cls, modules, paths: list[str]):
+    def __init_packages(cls, paths: list[str]):
         packages = []
         for path in paths:
-            packages.extend(cls.__list_packages(modules, Path(path), []))
+            packages.extend(cls.__list_packages(Path(path), []))
         return {package.name: package for package in packages}
 
     @classmethod
-    def __list_packages(cls, modules, base: Path, configs: list):
+    def __list_packages(cls, base: Path, configs: list):
         if base.joinpath(cls.colcon_ignore).exists():
             return []
         if base.joinpath(cls.common_config).exists():
-            configs = configs.copy()
-            configs.append(modules.parse_config(base.joinpath(cls.common_config)))
+            configs = [*configs, Config(base.joinpath(cls.common_config))]
         if base.joinpath(cls.package_xml).exists():
             return [Package(base, configs.copy())]
         packages = []
         for path in base.iterdir():
             if path.is_dir():
-                packages.extend(cls.__list_packages(modules, path, configs))
+                packages.extend(cls.__list_packages(path, configs))
         return packages

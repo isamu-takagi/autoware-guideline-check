@@ -38,28 +38,39 @@ def main():
     parser.add_argument("--xunit-name")
     args = parser.parse_args()
 
-    modules = Modules()
+    modules = []
     modules.append(param.ParameterSchemaValidation())
 
-    workspace = Workspace(modules, args.workspaces)
+    workspace = Workspace(args.workspaces)
 
+    if False:
+        for package in workspace.packages:
+            print(package.name)
+            print("  path:", package.path)
+            print("  config:", len(package.configs))
+            for config in package.configs:
+                print("    -", config.path)
+            print()
+
+    testsuite = TestSuite()
     for package in workspace.packages:
-        print(package.name)
-        print("  path:", package.path)
-        print("  config:", len(package.configs))
-        for config in package.configs:
-            print("    -", config.path)
-        print()
+        for module in modules:
+            testsuite.extend(module.execute(package, workspace))
 
-    testsuite = args.testsuites or sum((package.files for package in workspace.packages), [])
+    for testcase in testsuite.cases:
+        testcase.execute()
+        print(testcase.result.status.name)
 
-    suite = sum((TestSuite.Load(file) for file in testsuite), TestSuite())
+    # testsuite = args.testsuites or sum((package.files for package in workspace.packages), [])
+
+    # suite = sum((TestSuite.Load(file) for file in testsuite), TestSuite())
 
     # if args.json_schema_check:
     #    for package in workspace.packages:
     #        suite += generate_json_schema_check(package)
 
-    return test(suite, args, workspace)
+    return 0
+    # return test(testsuite, args, workspace)
 
 
 def test(suite, args, workspace):

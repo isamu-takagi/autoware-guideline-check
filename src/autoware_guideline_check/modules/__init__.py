@@ -22,8 +22,6 @@ class Modules:
     def append(self, module):
         self._modules.append(module)
 
-    def parse_config(self, path):
-        config = SpecFile(path)
+    def execute(self, package, workspace):
         for module in self._modules:
-            pass
-        return config
+            module.execute(package, workspace)

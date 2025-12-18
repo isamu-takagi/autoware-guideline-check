@@ -44,19 +44,21 @@ class TestResult:
     def Error(message="", details=""):
         return TestResult(TestStatus.Error, message, details)
 
+    @staticmethod
+    def Skipped(message="", details=""):
+        return TestResult(TestStatus.Skipped, message, details)
 
-class TestCase:
-    def __init__(self, data):
-        self.data = data
-        self.result = TestResult(TestStatus.Null, "", "")
+    @staticmethod
+    def Null(message="", details=""):
+        return TestResult(TestStatus.Null, message, details)
 
 
 class TestSuite:
     def __init__(self, cases=None):
         self.cases = [] if cases is None else cases
 
-    def __add__(self, other):
-        return TestSuite(self.cases + other.cases)
+    def extend(self, cases):
+        self.cases.extend(cases)
 
     def count(self, status=None):
         if status is None:
