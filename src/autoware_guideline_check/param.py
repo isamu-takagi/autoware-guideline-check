@@ -45,6 +45,9 @@ class TestInstance:
         except Exception as error:
             return TestResult.Error(repr(error), "")
 
+    def describe(self):
+        return {"schema": str(self.schema), "params": str(self.params)}
+
 
 class TestTemplate:
     def execute(self, package, workspace):

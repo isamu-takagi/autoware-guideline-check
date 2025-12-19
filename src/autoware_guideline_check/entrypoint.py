@@ -21,6 +21,8 @@ import xml.dom.minidom as MD
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils as sax
 
+import yaml
+
 from . import param
 from .modules import Modules
 from .utils.context import Context
@@ -41,67 +43,47 @@ def main():
     modules = []
     modules.append(param.ParameterSchemaValidation())
 
+    time1 = time.time()
+    testsuite = test(args, modules)
+    time2 = time.time()
+
+    duration = time2 - time1
+
+    for index, case in enumerate(testsuite.cases):
+        if args.quiet and case.result.status == TestStatus.Success:
+            continue
+        print(f"Test #{index} ({case.result.status.name})")
+        print("  message:", case.result.message)
+        print("  details:")
+        print(textwrap.indent(yaml.safe_dump(case.describe()), "    "))
+
+    print("Summary")
+    print("  all    :", testsuite.count())
+    print("  success:", testsuite.count(TestStatus.Success))
+    print("  failure:", testsuite.count(TestStatus.Failure))
+    print("  error  :", testsuite.count(TestStatus.Error))
+    print("  skipped:", testsuite.count(TestStatus.Skipped))
+
+    if args.xunit_file:
+        path = args.xunit_file
+        name = args.xunit_name
+        generate_xunit(path, testsuite, name, duration)
+
+    return 0 if testsuite.count() == testsuite.count(TestStatus.Success) else 1
+
+
+def test(args, modules):
     workspace = Workspace(args.workspaces)
-
-    if False:
-        for package in workspace.packages:
-            print(package.name)
-            print("  path:", package.path)
-            print("  config:", len(package.configs))
-            for config in package.configs:
-                print("    -", config.path)
-            print()
-
     testsuite = TestSuite()
+
     for package in workspace.packages:
         for module in modules:
             testsuite.extend(module.execute(package, workspace))
 
     for testcase in testsuite.cases:
         testcase.execute()
-        print(testcase.result.status.name)
 
-    # testsuite = args.testsuites or sum((package.files for package in workspace.packages), [])
-
-    # suite = sum((TestSuite.Load(file) for file in testsuite), TestSuite())
-
-    # if args.json_schema_check:
-    #    for package in workspace.packages:
-    #        suite += generate_json_schema_check(package)
-
-    return 0
-    # return test(testsuite, args, workspace)
-
-
-def test(suite, args, workspace):
-    start = time.time()
-
-    for case in suite.cases:
-        case.result = param.check(case.data, workspace)
-
-    duration = time.time() - start
-
-    for index, case in enumerate(suite.cases):
-        if args.quiet and case.result.status == TestStatus.Success:
-            continue
-        print(f"Test #{index} ({case.result.status.name})")
-        print("  message:", case.result.message)
-        print("  details:")
-        print(textwrap.indent(format_details(case.result.details), "    "))
-        print()
-
-    print("Summary")
-    print("  all    :", suite.count())
-    print("  success:", suite.count(TestStatus.Success))
-    print("  failure:", suite.count(TestStatus.Failure))
-    print("  errors :", suite.count(TestStatus.Error))
-
-    if args.xunit_file:
-        path = args.xunit_file
-        name = args.xunit_name
-        generate_xunit(path, suite, name, duration)
-
-    return 0 if suite.count() == suite.count(TestStatus.Success) else 1
+    return testsuite
 
 
 def generate_xunit(path, suite, name, duration):
@@ -120,18 +102,13 @@ def generate_xunit(path, suite, name, duration):
         if case.result.status == TestStatus.Failure:
             info = ET.SubElement(item, "failure")
             info.set("message", sax.quoteattr(case.result.message))
-            info.text = sax.escape(format_details(case.result.details))
+            info.text = sax.escape(case.describe())
 
         if case.result.status == TestStatus.Error:
             info = ET.SubElement(item, "error")
             info.set("message", sax.quoteattr(case.result.message))
-            info.text = sax.escape(format_details(case.result.details))
+            info.text = sax.escape(case.describe())
 
     with open(path, "w") as fp:
         xml = MD.parseString(ET.tostring(root, "UTF-8"))
         xml.writexml(fp, encoding="UTF-8", newl="\n", addindent="  ")
-
-
-# Temporary
-def format_details(details):
-    return "\n".join(f"{key}: {value}" for key, value in details)
